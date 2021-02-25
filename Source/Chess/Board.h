@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include <string>
-#include <array>
 #include <map>
 #include <vector>
 
@@ -16,29 +15,28 @@
 class PiecePromotion
 {
 public:
-	explicit PiecePromotion(int32 type) : PromoteTo(type) {}
+	explicit PiecePromotion(int8 type) : PromoteTo(type) {}
 
-	int32 PromoteTo;
+	int8 PromoteTo;
 };
 
 inline bool operator==(const PiecePromotion& lhs, const PiecePromotion& rhs) { return lhs.PromoteTo == rhs.PromoteTo; }
 inline bool operator!=(const PiecePromotion& lhs, const PiecePromotion& rhs) { return !operator==(lhs, rhs); }
 
-
 namespace Piece
 {
-	const int32 None = 0;
-	const int32 King = 1;
-	const int32 Pawn = 2;
-	const int32 Knight = 3;
-	const int32 Bishop = 4;
-	const int32 Rook = 5;
-	const int32 Queen = 6;
+	const int8 None = 0;
+	const int8 King = 1;
+	const int8 Pawn = 2;
+	const int8 Knight = 3;
+	const int8 Bishop = 4;
+	const int8 Rook = 5;
+	const int8 Queen = 6;
 
-	const int32 White = 8;
-	const int32 Black = 16;
+	const int8 White = 8;
+	const int8 Black = 16;
 
-	const int32 ClassMask = 0x7;
+	const int8 ClassMask = 0x7;
 
 	namespace Promotion
 	{
@@ -61,15 +59,15 @@ namespace Castling
 struct CHESS_API ChessMove
 {
 public:
-	int32 StartSquare;
-	int32 TargetSquare;
+	int8 StartSquare;
+	int8 TargetSquare;
 
-	int32 SecondaryStart;
-	int32 SecondaryTarget;
+	int8 SecondaryStart;
+	int8 SecondaryTarget;
 
-	int32 Colour;
+	int8 Colour;
 
-	int32 AllowsEnPassant;
+	int8 EnPassentTarget;
 	
 	int8 PreventsCastling;
 	int8 Castle;
@@ -80,66 +78,66 @@ public:
 		StartSquare(-1), TargetSquare(-1),
 		SecondaryStart(-1), SecondaryTarget(-1),
 		Colour(-1),
-		AllowsEnPassant(-1),
+		EnPassentTarget(-1),
 		PreventsCastling(Castling::None), Castle(Castling::None),
 		Promote(-1)
 	{}
 
 	//Regular move/capture
-	ChessMove(int32 Start, int32 Target, int32 PlayerColour) :
+	ChessMove(int8 Start, int8 Target, int8 PlayerColour) :
 		StartSquare(Start), TargetSquare(Target),
 		SecondaryStart(-1), SecondaryTarget(-1),
 		Colour(PlayerColour),
-		AllowsEnPassant(-1),
+		EnPassentTarget(-1),
 		PreventsCastling(Castling::None), Castle(Castling::None),
 		Promote(-1)
 	{}
 
 	//Pawn move that allows en passent
-	ChessMove(int32 Start, int32 Target, int32 PlayerColour, int32 EnPassant) :
+	ChessMove(int8 Start, int8 Target, int8 PlayerColour, bool EnPassant) :
 		StartSquare(Start), TargetSquare(Target), 
 		SecondaryStart(-1), SecondaryTarget(-1), 
 		Colour(PlayerColour),
-		AllowsEnPassant(EnPassant), 
+		EnPassentTarget(Start + (PlayerColour == Piece::White ? 8 : -8)), 
 		PreventsCastling(Castling::None), Castle(Castling::None),
 		Promote(-1)
 	{}
 
 	//Pawn capturing en passent
-	ChessMove(int32 Start, int32 Target, int32 PlayerColour, int32 secondaryStart, int32 secondaryTarget) :
+	ChessMove(int8 Start, int8 Target, int8 PlayerColour, int8 secondaryStart, int8 secondaryTarget) :
 		StartSquare(Start), TargetSquare(Target),
 		SecondaryStart(secondaryStart), SecondaryTarget(secondaryTarget),
 		Colour(PlayerColour),
-		AllowsEnPassant(-1),
+		EnPassentTarget(-1),
 		PreventsCastling(Castling::None), Castle(Castling::None),
 		Promote(-1)
 	{}
 
 	//Pawn promotion
-	explicit ChessMove(int32 Start, int32 Target, int32 PlayerColour, PiecePromotion promote) :
+	ChessMove(int8 Start, int8 Target, int8 PlayerColour, PiecePromotion promote) :
 		StartSquare(Start), TargetSquare(Target),
 		SecondaryStart(-1), SecondaryTarget(-1), 
 		Colour(PlayerColour),
-		AllowsEnPassant(-1),
+		EnPassentTarget(-1),
 		PreventsCastling(Castling::None), Castle(Castling::None),
 		Promote(promote)
 	{}
 
 	//King move
-	ChessMove(int32 Start, int32 Target, int32 PlayerColour, int8 StopsCastle) :
+	ChessMove(int8 Start, int8 Target, int8 PlayerColour, int8 StopsCastle) :
 		StartSquare(Start), TargetSquare(Target),
 		SecondaryStart(-1), SecondaryTarget(-1), 
 		Colour(PlayerColour),
-		AllowsEnPassant(-1),
+		EnPassentTarget(-1),
 		PreventsCastling(StopsCastle), Castle(Castling::None),
 		Promote(-1)
 	{}
 
 	//Castling
-	ChessMove(int32 PlayerColour, int8 castle) :
+	ChessMove(int8 PlayerColour, int8 castle) :
 		StartSquare(0), TargetSquare(0), 
 		Colour(PlayerColour),
-		AllowsEnPassant(-1),
+		EnPassentTarget(-1),
 		PreventsCastling(Castling::Kingside | Castling::Queenside), Castle(castle),
 		Promote(-1)
 	{
@@ -173,13 +171,13 @@ struct ThreatMap
 {
 public:
 	ThreatMap() {}
-	ThreatMap(Board* board, int32 colour) : Colour(colour), Map(0) { CalculateMap(board); }
+	ThreatMap(Board* board, int8 colour) : Colour(colour), Map(0) { CalculateMap(board); }
 	void CalculateMap(Board* board);
-	bool IsThreatened(int64 square) const { return (Map & (1ULL << square)); }
+	bool IsThreatened(int8 square) const { return (Map & (1ULL << square)); }
 private:
-	void SetThreatened(int64 square) { Map |= 1ULL << square; }
+	void SetThreatened(int8 square) { Map |= 1ULL << square; }
 private:
-	int32 Colour;
+	int8 Colour;
 	int64 Map;
 };
 
@@ -194,49 +192,49 @@ public:
 
 	bool MakeMove(ChessMove& move);
 	bool IsValidMove(ChessMove& move) const;
-	std::vector<ChessMove> GenerateMoves(int32 colour, bool calculateThreat = false) const;
+	std::vector<ChessMove> GenerateMoves(int8 colour, bool calculateThreat = false) const;
 
-	bool IsColour(int32 piece, int32 colour) const { return (piece & colour) == colour; }
-	bool IsType(int32 piece, int32 type) const { return (piece & Piece::ClassMask) == type; }
-	bool IsSlidingPiece(int32 piece) const { return IsType(piece, Piece::Bishop) || IsType(piece, Piece::Rook) || IsType(piece, Piece::Queen); }
+	bool IsColour(int8 piece, int8 colour) const { return (piece & colour) == colour; }
+	bool IsType(int8 piece, int8 type) const { return (piece & Piece::ClassMask) == type; }
+	bool IsSlidingPiece(int8 piece) const { return IsType(piece, Piece::Bishop) || IsType(piece, Piece::Rook) || IsType(piece, Piece::Queen); }
 	
-	int32 GetEnPassentTarget() const { return EnPassentTarget; }
-	int32 GetColourToMove() const { return ColourToMove; }
-	int8 GetCastleAvailability(int32 colour) const { return IsColour(colour, Piece::White) ? WhiteCastleAvailable : BlackCastleAvailable; }
-	std::string PieceName(int32 piece) const;
+	int8 GetEnPassentTarget() const { return EnPassentTarget; }
+	int8 GetColourToMove() const { return ColourToMove; }
+	int8 GetCastleAvailability(int8 colour) const { return IsColour(colour, Piece::White) ? WhiteCastleAvailable : BlackCastleAvailable; }
+	std::string PieceName(int8 piece) const;
 
 private:
-	std::array<int32, 64> ReadFEN(const std::string& fen);
+	void ReadFEN(const std::string& fen, int8* board);
 	void PrecomputeMoveData();
 
-	void GenerateSlidingMoves(int32 startSquare, int32 piece, std::vector<ChessMove>& moves) const;
-	void GenerateKnightMoves(int32 startSquare, int32 piece, std::vector<ChessMove>& moves) const;
-	void GeneratePawnMoves(int32 startSquare, int32 piece, std::vector<ChessMove>& moves) const;
-	void GeneratePawnAttacks(int32 startSquare, int32 piece, std::vector<ChessMove>& moves, bool calculateThreat = false) const;
-	void GenerateKingMoves(int32 startSquare, int32 piece, std::vector<ChessMove>& moves) const;
+	void GenerateSlidingMoves(int8 startSquare, int8 piece, std::vector<ChessMove>& moves) const;
+	void GenerateKnightMoves(int8 startSquare, int8 piece, std::vector<ChessMove>& moves) const;
+	void GeneratePawnMoves(int8 startSquare, int8 piece, std::vector<ChessMove>& moves) const;
+	void GeneratePawnAttacks(int8 startSquare, int8 piece, std::vector<ChessMove>& moves, bool calculateThreat = false) const;
+	void GenerateKingMoves(int8 startSquare, int8 piece, std::vector<ChessMove>& moves) const;
 
-	bool IsPinned(int32 square) const;
-	bool IsSquareThreatened(int32 square, int32 friendlyColour) const;
+	bool IsPinned(int8 square) const;
+	bool IsSquareThreatened(int8 square, int8 friendlyColour) const;
 
-	int32 RankIndex(int32 square) const { return square >> 3; }
-	int32 FileIndex(int32 square) const { return square & 0b000111; }
-	int32 IndexFromCoord(int32 rank, int32 file) const { return rank * 8 + file; }
+	int8 RankIndex(int8 square) const { return square >> 3; }
+	int8 FileIndex(int8 square) const { return square & 0b000111; }
+	int8 IndexFromCoord(int8 rank, int8 file) const { return rank * 8 + file; }
 
 public:
-	std::array<int32, 64> Squares;
+	int8 Squares[64];
 	ThreatMap WhiteThreatening, BlackThreatening;
 
 private:
-	int32 ColourToMove;
+	int8 ColourToMove;
 	int8 WhiteCastleAvailable;
 	int8 BlackCastleAvailable;
 
-	const int32 NO_EN_PASSENT = -1;
-	int32 EnPassentTarget = NO_EN_PASSENT;
+	static const int8 NO_EN_PASSENT = -1;
+	int8 EnPassentTarget = NO_EN_PASSENT;
 
-	static std::map<char, int32> PieceTypeFromSymbol;
+	static std::map<char, int8> PieceTypeFromSymbol;
 	static const std::string StandardStartFEN;
 
-	static const int32 DirectionOffsets[];
-	static int32 NumSquaresToEdge[64][8];
+	static const int8 DirectionOffsets[];
+	static int8 NumSquaresToEdge[64][8];
 };

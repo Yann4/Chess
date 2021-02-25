@@ -2,7 +2,7 @@
 
 #include "Board.h"
 
-std::map<char, int32> Board::PieceTypeFromSymbol = {
+std::map<char, int8> Board::PieceTypeFromSymbol = {
 	{'k', Piece::King},
 	{'p', Piece::Pawn},
 	{'n', Piece::Knight},
@@ -11,14 +11,14 @@ std::map<char, int32> Board::PieceTypeFromSymbol = {
 	{'q', Piece::Queen}
 };
 
-const int32 Board::DirectionOffsets[8] = { 8, -8, -1, 1, 7, -7, 9, -9 };
-int32 Board::NumSquaresToEdge[64][8];
+const int8 Board::DirectionOffsets[8] = { 8, -8, -1, 1, 7, -7, 9, -9 };
+int8 Board::NumSquaresToEdge[64][8];
 
 const std::string Board::StandardStartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-Board::Board() :
-	Squares(ReadFEN(StandardStartFEN))
+Board::Board()
 {
+	ReadFEN(StandardStartFEN, Squares);
 	PrecomputeMoveData();
 	WhiteThreatening = ThreatMap(this, Piece::White);
 	BlackThreatening = ThreatMap(this, Piece::Black);
@@ -56,7 +56,7 @@ bool Board::MakeMove(ChessMove& move)
 			Squares[move.TargetSquare] = ColourToMove | move.Promote.PromoteTo;
 		}
 
-		EnPassentTarget = move.AllowsEnPassant;
+		EnPassentTarget = move.EnPassentTarget;
 
 		WhiteThreatening.CalculateMap(this);
 		BlackThreatening.CalculateMap(this);
@@ -82,7 +82,7 @@ bool Board::IsValidMove(ChessMove& move) const
 	return moveIsValid;
 }
 
-std::string Board::PieceName(int32 piece) const
+std::string Board::PieceName(int8 piece) const
 {
 	std::string pieceName = IsColour(piece, Piece::Black) ? "Black " : "White ";
 	if (IsType(piece, Piece::Pawn))
@@ -119,12 +119,12 @@ void Board::PrecomputeMoveData()
 	{
 		for (int8 rank = 0; rank < 8; rank++)
 		{
-			int32 numNorth = 7 - rank;
-			int32 numSouth = rank;
-			int32 numWest = file;
-			int32 numEast = 7 - file;
+			int8 numNorth = 7 - rank;
+			int8 numSouth = rank;
+			int8 numWest = file;
+			int8 numEast = 7 - file;
 
-			int32 squareIdx = rank * 8 + file;
+			int8 squareIdx = rank * 8 + file;
 
 			NumSquaresToEdge[squareIdx][0] = numNorth;
 			NumSquaresToEdge[squareIdx][1] = numSouth;
@@ -138,18 +138,18 @@ void Board::PrecomputeMoveData()
 	}
 }
 
-std::vector<ChessMove> Board::GenerateMoves(int32 colour, bool calculateThreat) const
+std::vector<ChessMove> Board::GenerateMoves(int8 colour, bool calculateThreat) const
 {
 	std::vector<ChessMove> moves;
 
-	for (int32 startSquare = 0; startSquare < 64; startSquare++)
+	for (int8 startSquare = 0; startSquare < 64; startSquare++)
 	{
 		if (IsPinned(startSquare))
 		{
 			continue;
 		}
 
-		int32 piece = Squares[startSquare];
+		int8 piece = Squares[startSquare];
 
 		if (IsColour(piece, colour))
 		{
@@ -186,10 +186,10 @@ std::vector<ChessMove> Board::GenerateMoves(int32 colour, bool calculateThreat) 
 	return moves;
 }
 
-void Board::GenerateSlidingMoves(int32 startSquare, int32 piece, std::vector<ChessMove>& moves) const
+void Board::GenerateSlidingMoves(int8 startSquare, int8 piece, std::vector<ChessMove>& moves) const
 {
-	int32 friendlyColour = piece & ~Piece::ClassMask;
-	int32 enemyColour = friendlyColour == Piece::White ? Piece::Black : Piece::White;
+	int8 friendlyColour = piece & ~Piece::ClassMask;
+	int8 enemyColour = friendlyColour == Piece::White ? Piece::Black : Piece::White;
 
 	bool isRook = IsType(piece, Piece::Rook);
 	int8 startDirIdx = IsType(piece, Piece::Bishop) ? 4 : 0;
@@ -199,8 +199,8 @@ void Board::GenerateSlidingMoves(int32 startSquare, int32 piece, std::vector<Che
 	{
 		for (int8 n = 0; n < NumSquaresToEdge[startSquare][directionIndex]; n++)
 		{
-			int32 targetSquare = startSquare + DirectionOffsets[directionIndex] * (n + 1);
-			int32 pieceOnTargetSquare = Squares[targetSquare];
+			int8 targetSquare = startSquare + DirectionOffsets[directionIndex] * (n + 1);
+			int8 pieceOnTargetSquare = Squares[targetSquare];
 
 			if (IsColour(pieceOnTargetSquare, friendlyColour))
 			{
@@ -225,16 +225,16 @@ void Board::GenerateSlidingMoves(int32 startSquare, int32 piece, std::vector<Che
 	}
 }
 
-void Board::GenerateKnightMoves(int32 startSquare, int32 piece, std::vector<ChessMove>& moves) const
+void Board::GenerateKnightMoves(int8 startSquare, int8 piece, std::vector<ChessMove>& moves) const
 {
-	const int32 KnightOffsets[8] = { 15, 17, -17, -15, 10, -6, 6, -10};
+	const int8 KnightOffsets[8] = { 15, 17, -17, -15, 10, -6, 6, -10};
 	
-	int32 friendlyColour = piece & ~Piece::ClassMask;
-	int32 enemyColour = friendlyColour == Piece::White ? Piece::Black : Piece::White;
+	int8 friendlyColour = piece & ~Piece::ClassMask;
+	int8 enemyColour = friendlyColour == Piece::White ? Piece::Black : Piece::White;
 
 	for (int knightMoveIdx = 0; knightMoveIdx < 8; knightMoveIdx++)
 	{
-		int32 targetSquare = startSquare + KnightOffsets[knightMoveIdx];
+		int8 targetSquare = startSquare + KnightOffsets[knightMoveIdx];
 		if (targetSquare < 0 || targetSquare >= 64)
 		{
 			continue;
@@ -249,23 +249,23 @@ void Board::GenerateKnightMoves(int32 startSquare, int32 piece, std::vector<Ches
 	}
 }
 
-void Board::GeneratePawnMoves(int32 startSquare, int32 piece, std::vector<ChessMove>& moves) const
+void Board::GeneratePawnMoves(int8 startSquare, int8 piece, std::vector<ChessMove>& moves) const
 {
-	const int32 PawnOffsets[2][2]
+	const int8 PawnOffsets[2][2]
 	{
 		{ 8, 16 }, //White
 		{-8, -16}  //Black
 	};
 
-	int32 colour = piece & ~Piece::ClassMask;
-	int32 colourIdx = IsColour(piece, Piece::White) ? 0 : 1;
-	int32 startingRank = IsColour(piece, Piece::White) ? 1 : 6;
-	int32 backRank = IsColour(piece, Piece::White) ? 7 : 0;
+	int8 colour = piece & ~Piece::ClassMask;
+	int8 colourIdx = IsColour(piece, Piece::White) ? 0 : 1;
+	int8 startingRank = IsColour(piece, Piece::White) ? 1 : 6;
+	int8 backRank = IsColour(piece, Piece::White) ? 7 : 0;
 	int MovesAvailable = RankIndex(startSquare) == startingRank ? 2 : 1;
 
 	for (int moveIdx = 0; moveIdx < MovesAvailable; moveIdx++)
 	{
-		int32 targetSquare = startSquare + PawnOffsets[colourIdx][moveIdx];
+		int8 targetSquare = startSquare + PawnOffsets[colourIdx][moveIdx];
 		if (Squares[targetSquare] != Piece::None)
 		{
 			break;
@@ -280,23 +280,22 @@ void Board::GeneratePawnMoves(int32 startSquare, int32 piece, std::vector<ChessM
 		}
 		else
 		{
-			int32 enPassent = moveIdx == 1 ? startSquare + PawnOffsets[colourIdx][0] : NO_EN_PASSENT;
-			moves.emplace_back(startSquare, targetSquare, colour, enPassent);
+			moves.emplace_back(startSquare, targetSquare, colour, moveIdx == 1);
 		}
 	}
 }
 
-void Board::GeneratePawnAttacks(int32 startSquare, int32 piece, std::vector<ChessMove>& moves, bool calculateThreat) const
+void Board::GeneratePawnAttacks(int8 startSquare, int8 piece, std::vector<ChessMove>& moves, bool calculateThreat) const
 {
-	const int32 PawnOffsets[2][3]
+	const int8 PawnOffsets[2][3]
 	{
 		{ 7, 9 , 8}, //White
 		{ -9, -7, -8 } //Black
 	};
 
-	int32 colourIdx = IsColour(piece, Piece::White) ? 0 : 1;
-	int32 enemyColour = IsColour(piece, Piece::White) ? Piece::Black : Piece::White;
-	int32 file = FileIndex(startSquare);
+	int8 colourIdx = IsColour(piece, Piece::White) ? 0 : 1;
+	int8 enemyColour = IsColour(piece, Piece::White) ? Piece::Black : Piece::White;
+	int8 file = FileIndex(startSquare);
 
 	for (int moveIdx = 0; moveIdx < 2; moveIdx++)
 	{
@@ -306,7 +305,7 @@ void Board::GeneratePawnAttacks(int32 startSquare, int32 piece, std::vector<Ches
 			continue;
 		}
 
-		int32 targetSquare = startSquare + PawnOffsets[colourIdx][moveIdx];
+		int8 targetSquare = startSquare + PawnOffsets[colourIdx][moveIdx];
 		if (EnPassentTarget == targetSquare)
 		{
 			moves.emplace_back(startSquare, targetSquare, piece & ~Piece::ClassMask, EnPassentTarget + PawnOffsets[colourIdx == 0 ? 1 : 0][2], -1);
@@ -320,15 +319,15 @@ void Board::GeneratePawnAttacks(int32 startSquare, int32 piece, std::vector<Ches
 	}
 }
 
-void Board::GenerateKingMoves(int32 startSquare, int32 piece, std::vector<ChessMove>& moves) const
+void Board::GenerateKingMoves(int8 startSquare, int8 piece, std::vector<ChessMove>& moves) const
 {
-	int32 friendlyColour = piece & ~Piece::ClassMask;
-	int32 enemyColour = friendlyColour == Piece::White ? Piece::Black : Piece::White;
+	int8 friendlyColour = piece & ~Piece::ClassMask;
+	int8 enemyColour = friendlyColour == Piece::White ? Piece::Black : Piece::White;
 
 	for (int8 directionIndex = 0; directionIndex < 8; directionIndex++)
 	{
-		int32 targetSquare = startSquare + DirectionOffsets[directionIndex];
-		int32 pieceOnTargetSquare = Squares[targetSquare];
+		int8 targetSquare = startSquare + DirectionOffsets[directionIndex];
+		int8 pieceOnTargetSquare = Squares[targetSquare];
 
 		if (targetSquare < 0 || targetSquare >= 64)
 		{
@@ -349,8 +348,8 @@ void Board::GenerateKingMoves(int32 startSquare, int32 piece, std::vector<ChessM
 	int8 castleAvailability = friendlyColour == Piece::White ? WhiteCastleAvailable : BlackCastleAvailable;
 	if ((castleAvailability & Castling::Kingside) == Castling::Kingside)
 	{
-		int32 startIdx = friendlyColour == Piece::White ? 5 : 61;
-		int32 endIdx = friendlyColour == Piece::White ? 6 : 62;
+		int8 startIdx = friendlyColour == Piece::White ? 5 : 61;
+		int8 endIdx = friendlyColour == Piece::White ? 6 : 62;
 		bool castlingBlocked = false;
 		for (int idx = startIdx; idx < endIdx; idx++)
 		{
@@ -369,8 +368,8 @@ void Board::GenerateKingMoves(int32 startSquare, int32 piece, std::vector<ChessM
 	
 	if (((castleAvailability & Castling::Queenside) == Castling::Queenside))
 	{
-		int32 startIdx = friendlyColour == Piece::White ? 3 : 59;
-		int32 endIdx = friendlyColour == Piece::White ? 2 : 57;
+		int8 startIdx = friendlyColour == Piece::White ? 3 : 59;
+		int8 endIdx = friendlyColour == Piece::White ? 2 : 57;
 		bool castlingBlocked = false;
 
 		for (int idx = endIdx; idx < startIdx; idx++)
@@ -389,21 +388,20 @@ void Board::GenerateKingMoves(int32 startSquare, int32 piece, std::vector<ChessM
 	}
 }
 
-bool Board::IsPinned(int32 square) const 
+bool Board::IsPinned(int8 square) const 
 {
 	return false;
 }
 
-bool Board::IsSquareThreatened(int32 square, int32 friendlyColour) const
+bool Board::IsSquareThreatened(int8 square, int8 friendlyColour) const
 {
 	const ThreatMap& threats = IsColour(friendlyColour, Piece::White) ? BlackThreatening : WhiteThreatening;
 	return threats.IsThreatened(square);
 }
 
-std::array<int32, 64> Board::ReadFEN(const std::string& fen)
+void Board::ReadFEN(const std::string& fen, int8* board)
 {
-	std::array<int32, 64> board;
-	board.fill(0);
+	memset(board, 0, 64);
 
 	size_t endOfBoard = fen.find(' ');
 	if (endOfBoard != std::string::npos)
@@ -459,13 +457,11 @@ std::array<int32, 64> Board::ReadFEN(const std::string& fen)
 		std::string enPassent = fen.substr(endOfCastling + 1, endOfEP - (endOfCastling + 1));
 
 		size_t endOfHM = fen.find(' ', endOfEP + 1);
-		int32 HalfMoveCounter = std::atoi(fen.substr(endOfEP + 1, endOfHM - (endOfEP + 1)).c_str());
+		int8 HalfMoveCounter = std::atoi(fen.substr(endOfEP + 1, endOfHM - (endOfEP + 1)).c_str());
 		
 		size_t endOfFM = fen.find(' ', endOfHM + 1);
-		int32 FullMoveCounter = std::atoi(fen.substr(endOfHM + 1, endOfFM - (endOfHM + 1)).c_str());
+		int8 FullMoveCounter = std::atoi(fen.substr(endOfHM + 1, endOfFM - (endOfHM + 1)).c_str());
 	}
-
-	return board;
 }
 
 void ThreatMap::CalculateMap(Board* board)

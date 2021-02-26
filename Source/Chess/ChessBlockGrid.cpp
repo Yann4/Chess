@@ -90,23 +90,26 @@ void AChessBlockGrid::MovePiece(APieceActor& Piece, AChessBlock& OriginSquare, A
 	FString name(m_Board.PieceName(p).c_str());
 	UE_LOG(LogTemp, Display, TEXT("Moving %s from square %d to %d"), *name, startIDX, endIDX);
 
-	ChessMove move = ChessMove(startIDX, endIDX, p & ~Piece::ClassMask);
+	ChessMove move = ChessMove::CreateMove(startIDX, endIDX, p & ~Piece::ClassMask);
 	if (m_Board.IsType(p, Piece::King))
 	{
-		ChessMove castle;
 		if ((m_Board.IsColour(p, Piece::White) && endIDX == 1 || endIDX == 2) || (m_Board.IsColour(p, Piece::Black) && (endIDX == 57 || endIDX == 58)))
 		{
-			castle = ChessMove(p & ~Piece::ClassMask, Castling::Queenside);
+			ChessMove castle = ChessMove::CreateCastlingMove(p & ~Piece::ClassMask, Castling::Queenside);
+			if (m_Board.IsValidMove(castle))
+			{
+				move = castle;
+				TargetSquare = m_Grid[move.TargetSquare];
+			}
 		}
 		else if ((m_Board.IsColour(p, Piece::White) && endIDX == 6) || (m_Board.IsColour(p, Piece::Black) && endIDX == 62))
 		{
-			castle = ChessMove(p & ~Piece::ClassMask, Castling::Kingside);
-		}
-
-		if (m_Board.IsValidMove(castle))
-		{
-			move = castle;
-			TargetSquare = m_Grid[move.TargetSquare];
+			ChessMove castle = ChessMove::CreateCastlingMove(p & ~Piece::ClassMask, Castling::Kingside);
+			if (m_Board.IsValidMove(castle))
+			{
+				move = castle;
+				TargetSquare = m_Grid[move.TargetSquare];
+			}
 		}
 	}
 
@@ -117,6 +120,7 @@ void AChessBlockGrid::MovePiece(APieceActor& Piece, AChessBlock& OriginSquare, A
 		if (TargetSquare->OccupyingPiece != nullptr)
 		{
 			TargetSquare->OccupyingPiece->TakePiece();
+			TargetSquare->OccupyingPiece = nullptr;
 		}
 
 		Piece.MoveTo(TargetSquare->GetActorLocation());
@@ -129,18 +133,20 @@ void AChessBlockGrid::MovePiece(APieceActor& Piece, AChessBlock& OriginSquare, A
 			{
 				secondaryPiece->MoveTo(m_Grid[move.SecondaryTarget]->GetActorLocation());
 				m_Grid[move.SecondaryTarget]->OccupySquare(secondaryPiece);
+				m_Grid[move.SecondaryStart]->OccupyingPiece = nullptr;
 			}
 			else
 			{
 				secondaryPiece->TakePiece();
+				m_Grid[move.SecondaryStart]->OccupyingPiece = nullptr;
 			}
 		}
 
 		//At the moment, we just auto-promote to queen because I can't be arsed with the UI to select the underpromotions
 		//But all that needs to happen is that the move needs to include the desired promotion & it should 'just work'
-		if (move.Promote != Piece::Promotion::None)
+		if (move.Promote != Piece::None)
 		{
-			Piece.SetPieceType(static_cast<Class>(move.Promote.PromoteTo), m_Board.IsColour(p, Piece::Black));
+			Piece.SetPieceType(static_cast<Class>(move.Promote), m_Board.IsColour(p, Piece::Black));
 		}
 
 		for (int idx = 0; idx < 64; idx++)

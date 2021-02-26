@@ -11,18 +11,6 @@
  * 
  */
  
- //Used to disambiguate a constructor. Not nice really
-class PiecePromotion
-{
-public:
-	explicit PiecePromotion(int8 type) : PromoteTo(type) {}
-
-	int8 PromoteTo;
-};
-
-inline bool operator==(const PiecePromotion& lhs, const PiecePromotion& rhs) { return lhs.PromoteTo == rhs.PromoteTo; }
-inline bool operator!=(const PiecePromotion& lhs, const PiecePromotion& rhs) { return !operator==(lhs, rhs); }
-
 namespace Piece
 {
 	const int8 None = 0;
@@ -38,15 +26,7 @@ namespace Piece
 
 	const int8 ClassMask = 0x7;
 
-	namespace Promotion
-	{
-		static const PiecePromotion None = PiecePromotion(-1);
-		static const PiecePromotion Queen = PiecePromotion(Piece::Queen);
-		static const PiecePromotion Rook = PiecePromotion(Piece::Rook);
-		static const PiecePromotion Knight = PiecePromotion(Piece::Knight);
-		static const PiecePromotion Bishop = PiecePromotion(Piece::Bishop);
-		static const PiecePromotion AllPromotions[4]{ Queen, Rook, Knight, Bishop };
-	}
+	static int8 AllPromotions[4]{ Queen, Rook, Knight, Bishop };
 }
 
 namespace Castling
@@ -72,98 +52,73 @@ public:
 	int8 PreventsCastling;
 	int8 Castle;
 
-	PiecePromotion Promote;
-
-	ChessMove() : 
-		StartSquare(-1), TargetSquare(-1),
-		SecondaryStart(-1), SecondaryTarget(-1),
-		Colour(-1),
-		EnPassentTarget(-1),
-		PreventsCastling(Castling::None), Castle(Castling::None),
-		Promote(-1)
-	{}
+	int8 Promote;
 
 	//Regular move/capture
-	ChessMove(int8 Start, int8 Target, int8 PlayerColour) :
-		StartSquare(Start), TargetSquare(Target),
-		SecondaryStart(-1), SecondaryTarget(-1),
-		Colour(PlayerColour),
-		EnPassentTarget(-1),
-		PreventsCastling(Castling::None), Castle(Castling::None),
-		Promote(-1)
-	{}
+	static ChessMove CreateMove(int8 Start, int8 Target, int8 PlayerColour, int8 PreventsCastling = Castling::None)
+	{
+		return ChessMove(Start, Target, DEFAULT, DEFAULT, PlayerColour, DEFAULT, PreventsCastling);
+	}
 
 	//Pawn move that allows en passent
-	ChessMove(int8 Start, int8 Target, int8 PlayerColour, bool EnPassant) :
-		StartSquare(Start), TargetSquare(Target), 
-		SecondaryStart(-1), SecondaryTarget(-1), 
-		Colour(PlayerColour),
-		EnPassentTarget(Start + (PlayerColour == Piece::White ? 8 : -8)), 
-		PreventsCastling(Castling::None), Castle(Castling::None),
-		Promote(-1)
-	{}
+	static ChessMove CreateEnPassentMove(int8 Start, int8 Target, int8 PlayerColour)
+	{
+		return ChessMove(Start, Target, DEFAULT, DEFAULT, PlayerColour, Start + (PlayerColour == Piece::White ? 8 : -8));
+	}
 
 	//Pawn capturing en passent
-	ChessMove(int8 Start, int8 Target, int8 PlayerColour, int8 secondaryStart, int8 secondaryTarget) :
-		StartSquare(Start), TargetSquare(Target),
-		SecondaryStart(secondaryStart), SecondaryTarget(secondaryTarget),
-		Colour(PlayerColour),
-		EnPassentTarget(-1),
-		PreventsCastling(Castling::None), Castle(Castling::None),
-		Promote(-1)
-	{}
+	static ChessMove CreateEnPassentCapture(int8 Start, int8 Target, int8 PlayerColour, int8 passentPawn, int8 passentTarget)
+	{
+		return ChessMove(Start, Target, passentPawn, DEFAULT, PlayerColour, passentTarget);
+	}
 
 	//Pawn promotion
-	ChessMove(int8 Start, int8 Target, int8 PlayerColour, PiecePromotion promote) :
-		StartSquare(Start), TargetSquare(Target),
-		SecondaryStart(-1), SecondaryTarget(-1), 
-		Colour(PlayerColour),
-		EnPassentTarget(-1),
-		PreventsCastling(Castling::None), Castle(Castling::None),
-		Promote(promote)
-	{}
-
-	//King move
-	ChessMove(int8 Start, int8 Target, int8 PlayerColour, int8 StopsCastle) :
-		StartSquare(Start), TargetSquare(Target),
-		SecondaryStart(-1), SecondaryTarget(-1), 
-		Colour(PlayerColour),
-		EnPassentTarget(-1),
-		PreventsCastling(StopsCastle), Castle(Castling::None),
-		Promote(-1)
-	{}
+	static ChessMove CreatePromotionMove(int8 Start, int8 Target, int8 PlayerColour, int8 promote)
+	{
+		return ChessMove(Start, Target, DEFAULT, DEFAULT, PlayerColour, DEFAULT, DEFAULT, DEFAULT, promote);
+	}
 
 	//Castling
-	ChessMove(int8 PlayerColour, int8 castle) :
-		StartSquare(0), TargetSquare(0), 
-		Colour(PlayerColour),
-		EnPassentTarget(-1),
-		PreventsCastling(Castling::Kingside | Castling::Queenside), Castle(castle),
-		Promote(-1)
+	static ChessMove CreateCastlingMove(int8 PlayerColour, int8 castle)
 	{
-		StartSquare = PlayerColour == Piece::White ? 4 : 60;
-
+		int8 Start = PlayerColour == Piece::White ? 4 : 60;
+		int8 Target = -1;
 		if (castle == Castling::Kingside)
 		{
-			TargetSquare = PlayerColour == Piece::White ? 6 : 62;
+			Target = PlayerColour == Piece::White ? 6 : 62;
 		}
 		else if (castle == Castling::Queenside)
 		{
-			TargetSquare = PlayerColour == Piece::White ? 2 : 58;
+			Target = PlayerColour == Piece::White ? 2 : 58;
 		}
 
+		int8 secondaryStart, secondaryTarget;
 		//Handle rook, king has already moved
 		if ((PlayerColour & Piece::White) == Piece::White)
 		{
-			SecondaryStart = Castle == Castling::Queenside ? 0 : 7;
-			SecondaryTarget = Castle == Castling::Queenside ? 3 : 5;
+			secondaryStart = castle == Castling::Queenside ? 0 : 7;
+			secondaryTarget = castle == Castling::Queenside ? 3 : 5;
 		}
 		else
 		{
-			SecondaryStart = Castle == Castling::Queenside ? 56 : 63;
-			SecondaryTarget = Castle == Castling::Queenside ? 59 : 61;
+			secondaryStart = castle == Castling::Queenside ? 56 : 63;
+			secondaryTarget = castle == Castling::Queenside ? 59 : 61;
 		}
+
+		return ChessMove(Start, Target, secondaryStart, secondaryTarget, PlayerColour, DEFAULT, Castling::Kingside | Castling::Queenside, castle);
 	}
+
+private:
+	ChessMove(int8 start = -1, int8 target = -1, int8 secondaryStart = -1, int8 secondaryTarget = -1, int8 colour = -1, int8 enPassent = -1, int8 preventCastle = Castling::None, int8 castle = -1, int8 promotion = Piece::None) :
+		StartSquare(start), TargetSquare(target),
+		SecondaryStart(secondaryStart), SecondaryTarget(secondaryTarget),
+		Colour(colour),
+		EnPassentTarget(enPassent),
+		PreventsCastling(preventCastle), Castle(castle),
+		Promote(promotion)
+	{}
+
+	static const int8 DEFAULT = -1;
 };
 
 class Board;

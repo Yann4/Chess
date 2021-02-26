@@ -38,7 +38,7 @@ bool Board::MakeMove(ChessMove& move)
 		if (move.PreventsCastling != Castling::None)
 		{
 			int8& toUpdate = move.Colour == Piece::White ? WhiteCastleAvailable : BlackCastleAvailable;
-			toUpdate |= move.PreventsCastling;
+			toUpdate &= ~move.PreventsCastling;
 		}
 
 		if (move.SecondaryStart != -1)
@@ -51,9 +51,9 @@ bool Board::MakeMove(ChessMove& move)
 			Squares[move.SecondaryStart] = 0;
 		}
 
-		if (move.Promote != Piece::Promotion::None)
+		if (move.Promote != Piece::None)
 		{
-			Squares[move.TargetSquare] = ColourToMove | move.Promote.PromoteTo;
+			Squares[move.TargetSquare] = ColourToMove | move.Promote;
 		}
 
 		EnPassentTarget = move.EnPassentTarget;
@@ -210,11 +210,11 @@ void Board::GenerateSlidingMoves(int8 startSquare, int8 piece, std::vector<Chess
 			if (isRook)
 			{
 				int8 prevented = RankIndex(0) ? Castling::Queenside : Castling::Kingside;
-				moves.emplace_back(startSquare, targetSquare, friendlyColour, prevented);
+				moves.push_back(ChessMove::CreateMove(startSquare, targetSquare, friendlyColour, prevented));
 			}
 			else
 			{
-				moves.emplace_back(startSquare, targetSquare, friendlyColour);
+				moves.push_back(ChessMove::CreateMove(startSquare, targetSquare, friendlyColour));
 			}
 
 			if (IsColour(pieceOnTargetSquare, enemyColour))
@@ -245,7 +245,7 @@ void Board::GenerateKnightMoves(int8 startSquare, int8 piece, std::vector<ChessM
 			continue;
 		}
 
-		moves.emplace_back(startSquare, targetSquare, friendlyColour);
+		moves.push_back(ChessMove::CreateMove(startSquare, targetSquare, friendlyColour));
 	}
 }
 
@@ -273,14 +273,21 @@ void Board::GeneratePawnMoves(int8 startSquare, int8 piece, std::vector<ChessMov
 
 		if (RankIndex(targetSquare) == backRank)
 		{
-			for (PiecePromotion promo : Piece::Promotion::AllPromotions)
+			for (int8 promo : Piece::AllPromotions)
 			{
-				moves.emplace_back(startSquare, targetSquare, colour, promo);
+				moves.push_back(ChessMove::CreatePromotionMove(startSquare, targetSquare, colour, promo));
 			}
 		}
 		else
 		{
-			moves.emplace_back(startSquare, targetSquare, colour, moveIdx == 1);
+			if (moveIdx == 1)
+			{
+				moves.push_back(ChessMove::CreateEnPassentMove(startSquare, targetSquare, colour));
+			}
+			else
+			{
+				moves.push_back(ChessMove::CreateMove(startSquare, targetSquare, colour));
+			}
 		}
 	}
 }
@@ -306,15 +313,17 @@ void Board::GeneratePawnAttacks(int8 startSquare, int8 piece, std::vector<ChessM
 		}
 
 		int8 targetSquare = startSquare + PawnOffsets[colourIdx][moveIdx];
-		if (EnPassentTarget == targetSquare)
+		
+		int8 passentPawn = EnPassentTarget + PawnOffsets[colourIdx == 0 ? 1 : 0][2];
+		if (EnPassentTarget == targetSquare && IsColour(Squares[passentPawn], enemyColour))
 		{
-			moves.emplace_back(startSquare, targetSquare, piece & ~Piece::ClassMask, EnPassentTarget + PawnOffsets[colourIdx == 0 ? 1 : 0][2], -1);
+			moves.push_back(ChessMove::CreateEnPassentCapture(startSquare, targetSquare, piece & ~Piece::ClassMask, passentPawn, EnPassentTarget));
 			continue;
 		}
 
 		if (calculateThreat || IsColour(Squares[targetSquare], enemyColour))
 		{
-			moves.emplace_back(startSquare, targetSquare, piece & ~Piece::ClassMask);
+			moves.push_back(ChessMove::CreateMove(startSquare, targetSquare, piece & ~Piece::ClassMask));
 		}
 	}
 }
@@ -341,7 +350,7 @@ void Board::GenerateKingMoves(int8 startSquare, int8 piece, std::vector<ChessMov
 
 		if (!IsSquareThreatened(targetSquare, friendlyColour))
 		{
-			moves.emplace_back(startSquare, targetSquare, friendlyColour, static_cast<int8>(Castling::Kingside | Castling::Queenside));
+			moves.push_back(ChessMove::CreateMove(startSquare, targetSquare, friendlyColour, Castling::Kingside | Castling::Queenside));
 		}
 	}
 
@@ -362,7 +371,7 @@ void Board::GenerateKingMoves(int8 startSquare, int8 piece, std::vector<ChessMov
 
 		if (!castlingBlocked)
 		{
-			moves.emplace_back(friendlyColour, Castling::Kingside);
+			moves.push_back(ChessMove::CreateCastlingMove(friendlyColour, Castling::Kingside));
 		}
 	}
 	
@@ -383,7 +392,7 @@ void Board::GenerateKingMoves(int8 startSquare, int8 piece, std::vector<ChessMov
 
 		if (!castlingBlocked)
 		{
-			moves.emplace_back(friendlyColour, Castling::Queenside);
+			moves.push_back(ChessMove::CreateCastlingMove(friendlyColour, Castling::Queenside));
 		}
 	}
 }

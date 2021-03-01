@@ -6,6 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "PuzzleBlockGrid"
 
+using namespace Chess::Constants;
+
 AChessBlockGrid::AChessBlockGrid()
 {
 	// Create dummy root scene component
@@ -52,12 +54,12 @@ void AChessBlockGrid::BeginPlay()
 
 	for (int32 idx = 0; idx < 64; idx++)
 	{
-		SpawnPiece(m_Board.Squares[idx], *m_Grid[idx]);
+		SpawnPiece(m_Board.BoardState.Squares[idx], *m_Grid[idx]);
 	}
 
 	for (int idx = 0; idx < 64; idx++)
 	{
-		m_Grid[idx]->Highlight(m_Board.WhiteThreatening.IsThreatened(idx));
+		m_Grid[idx]->Highlight(m_Board.BoardState.WhiteThreatMap.IsThreatened(idx));
 	}
 }
 
@@ -85,26 +87,26 @@ void AChessBlockGrid::MovePiece(APieceActor& Piece, AChessBlock& OriginSquare, A
 	int32 startIDX = m_Grid.Find(&OriginSquare);
 	int32 endIDX = m_Grid.Find(TargetSquare);
 	
-	int32 p = m_Board.Squares[startIDX];
+	int32 p = m_Board.BoardState.Squares[startIDX];
 
-	FString name(m_Board.PieceName(p).c_str());
+	FString name(Utils::PieceName(p).c_str());
 	UE_LOG(LogTemp, Display, TEXT("Moving %s from square %d to %d"), *name, startIDX, endIDX);
 
-	ChessMove move = ChessMove::CreateMove(startIDX, endIDX, p & ~Piece::ClassMask);
-	if (m_Board.IsType(p, Piece::King))
+	Chess::Move move = Move::CreateMove(startIDX, endIDX, p & ~Piece::ClassMask);
+	if (Utils::IsType(p, Piece::King))
 	{
-		if ((m_Board.IsColour(p, Piece::White) && endIDX == 1 || endIDX == 2) || (m_Board.IsColour(p, Piece::Black) && (endIDX == 57 || endIDX == 58)))
+		if ((Utils::IsColour(p, Piece::White) && endIDX == 1 || endIDX == 2) || (Utils::IsColour(p, Piece::Black) && (endIDX == 57 || endIDX == 58)))
 		{
-			ChessMove castle = ChessMove::CreateCastlingMove(p & ~Piece::ClassMask, Castling::Queenside);
+			Chess::Move castle = Move::CreateCastlingMove(p & ~Piece::ClassMask, Castling::Queenside);
 			if (m_Board.IsValidMove(castle))
 			{
 				move = castle;
 				TargetSquare = m_Grid[move.TargetSquare];
 			}
 		}
-		else if ((m_Board.IsColour(p, Piece::White) && endIDX == 6) || (m_Board.IsColour(p, Piece::Black) && endIDX == 62))
+		else if ((Utils::IsColour(p, Piece::White) && endIDX == 6) || (Utils::IsColour(p, Piece::Black) && endIDX == 62))
 		{
-			ChessMove castle = ChessMove::CreateCastlingMove(p & ~Piece::ClassMask, Castling::Kingside);
+			Chess::Move castle = Move::CreateCastlingMove(p & ~Piece::ClassMask, Castling::Kingside);
 			if (m_Board.IsValidMove(castle))
 			{
 				move = castle;
@@ -146,12 +148,12 @@ void AChessBlockGrid::MovePiece(APieceActor& Piece, AChessBlock& OriginSquare, A
 		//But all that needs to happen is that the move needs to include the desired promotion & it should 'just work'
 		if (move.Promote != Piece::None)
 		{
-			Piece.SetPieceType(static_cast<Class>(move.Promote), m_Board.IsColour(p, Piece::Black));
+			Piece.SetPieceType(static_cast<Class>(move.Promote), Utils::IsColour(p, Piece::Black));
 		}
 
 		for (int idx = 0; idx < 64; idx++)
 		{
-			m_Grid[idx]->Highlight(m_Board.WhiteThreatening.IsThreatened(idx));
+			m_Grid[idx]->Highlight(m_Board.BoardState.WhiteThreatMap.IsThreatened(idx));
 		}
 	}
 }

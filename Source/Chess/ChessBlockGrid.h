@@ -10,6 +10,8 @@
 
 #include "ChessBlockGrid.generated.h"
 
+using namespace Chess;
+
 /** Class used to spawn blocks and manage score */
 UCLASS(minimalapi)
 class AChessBlockGrid : public AActor

@@ -90,14 +90,16 @@ void AChessBlockGrid::MovePiece(APieceActor& Piece, AChessBlock& OriginSquare, A
 	int32 p = m_Board.BoardState.Squares[startIDX];
 
 	FString name(Utils::PieceName(p).c_str());
-	UE_LOG(LogTemp, Display, TEXT("Moving %s from square %d to %d"), *name, startIDX, endIDX);
+	FString start = FString(Utils::SquareName(startIDX).c_str());
+	FString end = FString(Utils::SquareName(endIDX).c_str());
+	UE_LOG(LogTemp, Display, TEXT("Moving %s from square %s (%d) to %s (%d)"), *name, *start, Utils::SquareFromName(Utils::SquareName(startIDX).c_str()), *end, Utils::SquareFromName(Utils::SquareName(endIDX).c_str()));
 
-	Chess::Move move = Move::CreateMove(startIDX, endIDX, p & ~Piece::ClassMask);
+	Chess::Move move = Move::CreateMove(m_Board.BoardState, startIDX, endIDX, p & ~Piece::ClassMask);
 	if (Utils::IsType(p, Piece::King))
 	{
 		if ((Utils::IsColour(p, Piece::White) && endIDX == 1 || endIDX == 2) || (Utils::IsColour(p, Piece::Black) && (endIDX == 57 || endIDX == 58)))
 		{
-			Chess::Move castle = Move::CreateCastlingMove(p & ~Piece::ClassMask, Castling::Queenside);
+			Chess::Move castle = Move::CreateCastlingMove(m_Board.BoardState, p & ~Piece::ClassMask, Castling::Queenside);
 			if (m_Board.IsValidMove(castle))
 			{
 				move = castle;
@@ -106,7 +108,7 @@ void AChessBlockGrid::MovePiece(APieceActor& Piece, AChessBlock& OriginSquare, A
 		}
 		else if ((Utils::IsColour(p, Piece::White) && endIDX == 6) || (Utils::IsColour(p, Piece::Black) && endIDX == 62))
 		{
-			Chess::Move castle = Move::CreateCastlingMove(p & ~Piece::ClassMask, Castling::Kingside);
+			Chess::Move castle = Move::CreateCastlingMove(m_Board.BoardState, p & ~Piece::ClassMask, Castling::Kingside);
 			if (m_Board.IsValidMove(castle))
 			{
 				move = castle;
@@ -117,6 +119,7 @@ void AChessBlockGrid::MovePiece(APieceActor& Piece, AChessBlock& OriginSquare, A
 
 	if (m_Board.MakeMove(move))
 	{
+		UE_LOG(LogTemp, Display, TEXT("%s"), *FString(move.ToString().c_str()));
 		OriginSquare.OccupyingPiece = nullptr;
 
 		if (TargetSquare->OccupyingPiece != nullptr)

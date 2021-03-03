@@ -7,6 +7,7 @@
 #include <map>
 #include <vector>
 #include <array>
+#include <assert.h>
 
 /**
  * 
@@ -94,7 +95,7 @@ namespace Chess
 			}
 		}
 	}
-
+	struct State;
 	struct Move
 	{
 	public:
@@ -114,31 +115,31 @@ namespace Chess
 		int8 Promote;
 
 		//Regular move/capture
-		static Move CreateMove(int8 Start, int8 Target, int8 PlayerColour, int8 PreventsCastling = Constants::Castling::None)
+		static Move CreateMove(const State& board, int8 Start, int8 Target, int8 PlayerColour, int8 PreventsCastling = Constants::Castling::None)
 		{
-			return Move(Start, Target, Constants::DEFAULT, Constants::DEFAULT, PlayerColour, Constants::DEFAULT, PreventsCastling);
+			return Move(board, Start, Target, Constants::DEFAULT, Constants::DEFAULT, PlayerColour, Constants::DEFAULT, PreventsCastling);
 		}
 
 		//Pawn move that allows en passent
-		static Move CreateEnPassentMove(int8 Start, int8 Target, int8 PlayerColour)
+		static Move CreateEnPassentMove(const State& board, int8 Start, int8 Target, int8 PlayerColour)
 		{
-			return Move(Start, Target, Constants::DEFAULT, Constants::DEFAULT, PlayerColour, Start + (PlayerColour == Constants::Piece::White ? 8 : -8));
+			return Move(board, Start, Target, Constants::DEFAULT, Constants::DEFAULT, PlayerColour, Start + (PlayerColour == Constants::Piece::White ? 8 : -8));
 		}
 
 		//Pawn capturing en passent
-		static Move CreateEnPassentCapture(int8 Start, int8 Target, int8 PlayerColour, int8 passentPawn, int8 passentTarget)
+		static Move CreateEnPassentCapture(const State& board, int8 Start, int8 Target, int8 PlayerColour, int8 passentPawn, int8 passentTarget)
 		{
-			return Move(Start, Target, passentPawn, Constants::DEFAULT, PlayerColour, passentTarget);
+			return Move(board, Start, Target, passentPawn, Constants::DEFAULT, PlayerColour, passentTarget);
 		}
 
 		//Pawn promotion
-		static Move CreatePromotionMove(int8 Start, int8 Target, int8 PlayerColour, int8 promote)
+		static Move CreatePromotionMove(const State& board, int8 Start, int8 Target, int8 PlayerColour, int8 promote)
 		{
-			return Move(Start, Target, Constants::DEFAULT, Constants::DEFAULT, PlayerColour, Constants::DEFAULT, Constants::Castling::None, Constants::Castling::None, promote);
+			return Move(board, Start, Target, Constants::DEFAULT, Constants::DEFAULT, PlayerColour, Constants::DEFAULT, Constants::Castling::None, Constants::Castling::None, promote);
 		}
 
 		//Castling
-		static Move CreateCastlingMove(int8 PlayerColour, int8 castle)
+		static Move CreateCastlingMove(const State& board, int8 PlayerColour, int8 castle)
 		{
 			using namespace Constants;
 
@@ -166,19 +167,23 @@ namespace Chess
 				secondaryTarget = castle == Castling::Queenside ? 59 : 61;
 			}
 
-			return Move(Start, Target, secondaryStart, secondaryTarget, PlayerColour, Constants::DEFAULT, Castling::Both, castle);
+			return Move(board, Start, Target, secondaryStart, secondaryTarget, PlayerColour, Constants::DEFAULT, Castling::Both, castle);
 		}
 
+		std::string ToString() const { return AlgebraicName; }
 	private:
-		Move(int8 start = Constants::DEFAULT, int8 target = Constants::DEFAULT, int8 secondaryStart = Constants::DEFAULT, int8 secondaryTarget = Constants::DEFAULT,
+		Move(const State& board, int8 start = Constants::DEFAULT, int8 target = Constants::DEFAULT, int8 secondaryStart = Constants::DEFAULT, int8 secondaryTarget = Constants::DEFAULT,
 			int8 colour = Constants::DEFAULT, int8 enPassent = Constants::NO_EN_PASSENT, int8 preventCastle = Constants::Castling::None, int8 castle = Constants::Castling::None, int8 promotion = Constants::Piece::None) :
 			StartSquare(start), TargetSquare(target),
 			SecondaryStart(secondaryStart), SecondaryTarget(secondaryTarget),
 			Colour(colour),
 			EnPassentTarget(enPassent),
 			PreventsCastling(preventCastle), Castle(castle),
-			Promote(promotion)
-		{}
+			Promote(promotion), AlgebraicName(GenerateAlgebraicName(board))
+		{ }
+
+		std::string GenerateAlgebraicName(const State& board) const;
+		std::string AlgebraicName;
 	};
 
 	inline bool operator==(const Move& lhs, const Move& rhs) { return lhs.StartSquare == rhs.StartSquare && lhs.TargetSquare == rhs.TargetSquare && lhs.Colour == rhs.Colour; }
@@ -194,7 +199,27 @@ namespace Chess
 		inline int8 RankIndex(int8 square) { return square >> 3; }
 		inline int8 FileIndex(int8 square) { return square & 0b000111; }
 		inline int8 IndexFromCoord(int8 rank, int8 file) { return rank * 8 + file; }
+
 		std::string PieceName(int8 piece);
+		std::string AlgebraicName(int8 piece);
+
+		static std::string RankNames = "12345678";
+		static std::string FileNames = "abcdefgh";
+
+		inline std::string SquareName(int8 square)
+		{
+			std::string name; 
+			name.append(1, FileNames[FileIndex(square)]);
+			name.append(1, RankNames[RankIndex(square)]); 
+			return name;
+		}
+
+		inline int8 SquareFromName(const char* name)
+		{
+			size_t file = FileNames.find(name[0]);
+			size_t rank = RankNames.find(name[1]);
+			return IndexFromCoord(rank, file);
+		}
 	}
 
 	struct State;
@@ -244,6 +269,20 @@ namespace Chess
 		{
 			const ThreatMap& threats = Utils::IsColour(friendlyColour, Constants::Piece::White) ? BlackThreatMap : WhiteThreatMap;
 			return threats.IsThreatened(square);
+		}
+
+		bool IsKingThreatened(int8 colour) const
+		{
+			for (int idx = 0; idx < 64; idx++)
+			{
+				if (Utils::IsType(Squares[idx], Constants::Piece::King) && Utils::IsColour(Squares[idx], colour))
+				{
+					return IsSquareThreatened(idx, colour);
+				}
+			}
+
+			assert(false);
+			return false;
 		}
 	};
 

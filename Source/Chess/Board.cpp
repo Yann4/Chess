@@ -1,7 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Board.h"
-#include <assert.h>
 
 namespace Chess
 {
@@ -157,11 +156,11 @@ namespace Chess
 				if (isRook)
 				{
 					int8 prevented = Utils::RankIndex(0) ? Castling::Queenside : Castling::Kingside;
-					moves.push_back(Move::CreateMove(startSquare, targetSquare, friendlyColour, prevented));
+					moves.push_back(Move::CreateMove(state, startSquare, targetSquare, friendlyColour, prevented));
 				}
 				else
 				{
-					moves.push_back(Move::CreateMove(startSquare, targetSquare, friendlyColour));
+					moves.push_back(Move::CreateMove(state, startSquare, targetSquare, friendlyColour));
 				}
 
 				if (Utils::IsColour(pieceOnTargetSquare, enemyColour))
@@ -193,7 +192,7 @@ namespace Chess
 				continue;
 			}
 
-			moves.push_back(Move::CreateMove(startSquare, targetSquare, friendlyColour));
+			moves.push_back(Move::CreateMove(state, startSquare, targetSquare, friendlyColour));
 		}
 	}
 
@@ -224,18 +223,18 @@ namespace Chess
 			{
 				for (int8 promo : Constants::Promotions)
 				{
-					moves.push_back(Move::CreatePromotionMove(startSquare, targetSquare, colour, promo));
+					moves.push_back(Move::CreatePromotionMove(state, startSquare, targetSquare, colour, promo));
 				}
 			}
 			else
 			{
 				if (moveIdx == 1)
 				{
-					moves.push_back(Move::CreateEnPassentMove(startSquare, targetSquare, colour));
+					moves.push_back(Move::CreateEnPassentMove(state, startSquare, targetSquare, colour));
 				}
 				else
 				{
-					moves.push_back(Move::CreateMove(startSquare, targetSquare, colour));
+					moves.push_back(Move::CreateMove(state, startSquare, targetSquare, colour));
 				}
 			}
 		}
@@ -268,13 +267,13 @@ namespace Chess
 			int8 passentPawn = state.EnPassentTarget + PawnOffsets[colourIdx == 0 ? 1 : 0][2];
 			if (state.EnPassentTarget == targetSquare && Utils::IsColour(state.Squares[passentPawn], enemyColour))
 			{
-				moves.push_back(Move::CreateEnPassentCapture(startSquare, targetSquare, colour, passentPawn, state.EnPassentTarget));
+				moves.push_back(Move::CreateEnPassentCapture(state, startSquare, targetSquare, colour, passentPawn, state.EnPassentTarget));
 				continue;
 			}
 
 			if (calculateThreat || Utils::IsColour(state.Squares[targetSquare], enemyColour))
 			{
-				moves.push_back(Move::CreateMove(startSquare, targetSquare, colour));
+				moves.push_back(Move::CreateMove(state, startSquare, targetSquare, colour));
 			}
 		}
 	}
@@ -302,7 +301,7 @@ namespace Chess
 
 			if (!state.IsSquareThreatened(targetSquare, friendlyColour))
 			{
-				moves.push_back(Move::CreateMove(startSquare, targetSquare, friendlyColour, Castling::Kingside | Castling::Queenside));
+				moves.push_back(Move::CreateMove(state, startSquare, targetSquare, friendlyColour, Castling::Kingside | Castling::Queenside));
 			}
 		}
 
@@ -323,7 +322,7 @@ namespace Chess
 
 			if (!castlingBlocked)
 			{
-				moves.push_back(Move::CreateCastlingMove(friendlyColour, Castling::Kingside));
+				moves.push_back(Move::CreateCastlingMove(state, friendlyColour, Castling::Kingside));
 			}
 		}
 
@@ -344,7 +343,7 @@ namespace Chess
 
 			if (!castlingBlocked)
 			{
-				moves.push_back(Move::CreateCastlingMove(friendlyColour, Castling::Queenside));
+				moves.push_back(Move::CreateCastlingMove(state, friendlyColour, Castling::Queenside));
 			}
 		}
 	}
@@ -456,6 +455,69 @@ namespace Chess
 		}
 
 		return pieceName;
+	}
+
+	std::string Utils::AlgebraicName(int8 piece)
+	{
+		if (IsType(piece, Piece::Pawn))
+		{
+			return "";
+		}
+		else if (IsType(piece, Piece::Rook))
+		{
+			return "R";
+		}
+		else if (IsType(piece, Piece::Bishop))
+		{
+			return "B";
+		}
+		else if (IsType(piece, Piece::Knight))
+		{
+			return "N";
+		}
+		else if (IsType(piece, Piece::King))
+		{
+			return "K";
+		}
+		else if (IsType(piece, Piece::Queen))
+		{
+			return "Q";
+		}
+
+		return "ERROR";
+	}
+
+	std::string Move::GenerateAlgebraicName(const State& board) const
+	{
+		if (Castle == Constants::Castling::Kingside)
+		{
+			return "0-0";
+		}
+		else if (Castle == Constants::Castling::Queenside)
+		{
+			return "0-0-0";
+		}
+		else if (Promote != Constants::Piece::None)
+		{
+			return Utils::SquareName(StartSquare) + "=" + Utils::AlgebraicName(Promote);
+		}
+
+		std::string move = Utils::AlgebraicName(board.Squares[StartSquare]) + Utils::SquareName(StartSquare); //TODO - Square name should only be used to disambiguate
+
+		if (board.Squares[TargetSquare] != Piece::None)
+		{
+			move += "x";
+		}
+
+		move += Utils::SquareName(TargetSquare);
+
+		if (board.IsKingThreatened(Utils::IsColour(Colour, Constants::Piece::White) ? Constants::Piece::Black : Constants::Piece::White))
+		{
+			//TODO: Determine checkmate
+			move += "+";
+		}
+
+		return move;
 	}
 
 	void ThreatMap::CalculateMap(const State& board)

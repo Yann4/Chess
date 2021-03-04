@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "ChessBlock.h"
 #include "PieceActor.h"
-#include "Board.h"
+#include "Core/Board.h"
 
 #include "ChessBlockGrid.generated.h"
 

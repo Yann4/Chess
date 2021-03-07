@@ -18,7 +18,7 @@ namespace Chess
 		void GenerateKnightMoves(const State& state, int8 startSquare, std::vector<Move>& moves);
 		void GeneratePawnMoves(const State& state, int8 startSquare, std::vector<Move>& moves);
 		void GeneratePawnAttacks(const State& state, int8 startSquare, std::vector<Move>& moves, bool calculateThreat = false);
-		void GenerateKingMoves(const State& state, int8 startSquare, std::vector<Move>& moves);
+		void GenerateKingMoves(const State& state, int8 startSquare, std::vector<Move>& moves, bool calculateThreat = false);
 	}
 
 }

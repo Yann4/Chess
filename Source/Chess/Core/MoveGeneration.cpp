@@ -40,7 +40,7 @@ namespace Chess
 
 				if (Utils::IsType(piece, Piece::King))
 				{
-					GenerateKingMoves(board, startSquare, moves);
+					GenerateKingMoves(board, startSquare, moves, calculateThreat);
 				}
 			}
 		}
@@ -195,7 +195,7 @@ namespace Chess
 		}
 	}
 
-	void MoveGeneration::GenerateKingMoves(const State& state, int8 startSquare, std::vector<Move>& moves)
+	void MoveGeneration::GenerateKingMoves(const State& state, int8 startSquare, std::vector<Move>& moves, bool calculateThreat /* = false*/)
 	{
 		int8 piece = state.Squares[startSquare];
 		int8 friendlyColour = Utils::GetColour(piece);
@@ -222,45 +222,50 @@ namespace Chess
 			}
 		}
 
-		int8 castleAvailability = friendlyColour == Piece::White ? state.WhiteCastleAvailable : state.BlackCastleAvailable;
-		if ((castleAvailability & Castling::Kingside) == Castling::Kingside)
+		//Castling doesn't generate threat on it's own, i.e. it's not an implicitly attacking move
+		//The threat comes from the subsequent position of the pieces so it can be ignored for this purpose
+		if (!calculateThreat)
 		{
-			int8 startIdx = friendlyColour == Piece::White ? 5 : 61;
-			int8 endIdx = friendlyColour == Piece::White ? 6 : 62;
-			bool castlingBlocked = false;
-			for (int idx = startIdx; idx < endIdx; idx++)
+			int8 castleAvailability = friendlyColour == Piece::White ? state.WhiteCastleAvailable : state.BlackCastleAvailable;
+			if ((castleAvailability & Castling::Kingside) == Castling::Kingside)
 			{
-				if (state.Squares[idx] != Piece::None || state.IsSquareThreatened(idx, friendlyColour))
+				int8 startIdx = friendlyColour == Piece::White ? 5 : 61;
+				int8 endIdx = friendlyColour == Piece::White ? 6 : 62;
+				bool castlingBlocked = false;
+				for (int idx = startIdx; idx < endIdx; idx++)
 				{
-					castlingBlocked = true;
-					break;
+					if (state.Squares[idx] != Piece::None || state.IsSquareThreatened(idx, friendlyColour))
+					{
+						castlingBlocked = true;
+						break;
+					}
+				}
+
+				if (!castlingBlocked)
+				{
+					moves.push_back(Move::CreateCastlingMove(state, friendlyColour, Castling::Kingside));
 				}
 			}
 
-			if (!castlingBlocked)
+			if (((castleAvailability & Castling::Queenside) == Castling::Queenside))
 			{
-				moves.push_back(Move::CreateCastlingMove(state, friendlyColour, Castling::Kingside));
-			}
-		}
+				int8 startIdx = friendlyColour == Piece::White ? 3 : 59;
+				int8 endIdx = friendlyColour == Piece::White ? 2 : 57;
+				bool castlingBlocked = false;
 
-		if (((castleAvailability & Castling::Queenside) == Castling::Queenside))
-		{
-			int8 startIdx = friendlyColour == Piece::White ? 3 : 59;
-			int8 endIdx = friendlyColour == Piece::White ? 2 : 57;
-			bool castlingBlocked = false;
-
-			for (int idx = endIdx; idx < startIdx; idx++)
-			{
-				if (state.Squares[idx] != Piece::None || state.IsSquareThreatened(idx, friendlyColour))
+				for (int idx = endIdx; idx < startIdx; idx++)
 				{
-					castlingBlocked = true;
-					break;
+					if (state.Squares[idx] != Piece::None || state.IsSquareThreatened(idx, friendlyColour))
+					{
+						castlingBlocked = true;
+						break;
+					}
 				}
-			}
 
-			if (!castlingBlocked)
-			{
-				moves.push_back(Move::CreateCastlingMove(state, friendlyColour, Castling::Queenside));
+				if (!castlingBlocked)
+				{
+					moves.push_back(Move::CreateCastlingMove(state, friendlyColour, Castling::Queenside));
+				}
 			}
 		}
 	}

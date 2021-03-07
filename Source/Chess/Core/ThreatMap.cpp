@@ -11,10 +11,7 @@ namespace Chess
 		Map = 0;
 		for (const Move& move : MoveGeneration::GenerateMoves(board, Colour, true))
 		{
-			if (move.Castle == Constants::Castling::None)
-			{
-				SetThreatened(move.TargetSquare);
-			}
+			SetThreatened(move.TargetSquare);
 		}
 	}
 }

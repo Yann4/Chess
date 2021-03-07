@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include <string>
+#include <vector>
 
 #include "Constants.h"
 #include "Move.h"
@@ -30,11 +31,11 @@ namespace Chess
 		}
 
 		void Update(const Move& move);
-
 		void UpdateThreatMaps();
 
 		bool IsSquareThreatened(int8 square, int8 friendlyColour) const;
-
 		bool IsKingThreatened(int8 colour) const;
+
+		std::vector<int8> FindPiece(int8 piece) const;
 	};
 }

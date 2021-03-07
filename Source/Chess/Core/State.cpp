@@ -99,6 +99,12 @@ namespace Chess
 		{
 			Squares[move.TargetSquare] = ColourToMove | move.Promote;
 		}
+
+		EnPassentTarget = move.EnPassentTarget;
+
+		UpdateThreatMaps();
+
+		ColourToMove = ColourToMove == Piece::White ? Piece::Black : Piece::White;
 	}
 
 	void State::UpdateThreatMaps()
@@ -115,15 +121,28 @@ namespace Chess
 
 	bool State::IsKingThreatened(int8 colour) const
 	{
+		int8 king = FindPiece(colour | Piece::King)[0];
+		return IsSquareThreatened(king, colour);
+	}
+
+	std::vector<int8> State::FindPiece(int8 piece) const
+	{
+		std::vector<int8> pieceLocations;
 		for (int idx = 0; idx < 64; idx++)
 		{
-			if (Utils::IsType(Squares[idx], Constants::Piece::King) && Utils::IsColour(Squares[idx], colour))
+			if (Squares[idx] == piece)
 			{
-				return IsSquareThreatened(idx, colour);
+				pieceLocations.push_back(idx);
+
+				if ((Utils::IsType(piece, Piece::King) || Utils::IsType(piece, Piece::Queen)) || //There can be only one
+					(pieceLocations.size() == 2 && (Utils::IsType(piece, Piece::Rook) || Utils::IsType(piece, Piece::Knight) || Utils::IsType(piece, Piece::Bishop))) ||
+					(pieceLocations.size() == 8 && Utils::IsType(piece, Piece::Pawn)))
+				{
+					break;
+				}
 			}
 		}
 
-		assert(false);
-		return false;
+		return pieceLocations;
 	}
 }

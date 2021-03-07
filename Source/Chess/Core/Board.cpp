@@ -12,7 +12,7 @@ namespace Chess
 	Board::Board():
 		BoardState(StandardStartFEN)
 	{
-		PrecomputeMoveData();
+		PrecomputeMoveData(); //TODO: Make this happen at compile time
 	}
 
 	bool Board::MakeMove(Move& move)
@@ -20,12 +20,6 @@ namespace Chess
 		if (IsValidMove(move))
 		{
 			BoardState.Update(move);
-
-			BoardState.EnPassentTarget = move.EnPassentTarget;
-
-			BoardState.UpdateThreatMaps();
-
-			BoardState.ColourToMove = BoardState.ColourToMove == Piece::White ? Piece::Black : Piece::White;
 			return true;
 		}
 
@@ -34,6 +28,8 @@ namespace Chess
 
 	bool Board::IsValidMove(Move& move) const
 	{
+		//TODO: This is really slow. Fix
+
 		std::vector<Move> validMoves = MoveGeneration::GenerateMoves(BoardState, BoardState.ColourToMove);
 
 		int8 king = Constants::DEFAULT;

@@ -9,7 +9,7 @@ namespace Chess
 	using namespace Constants;
 
 	State::State(const std::string& fen) :
-		WhiteThreatMap(*this, Piece::White), BlackThreatMap(*this, Piece::Black)
+		WhiteThreatMap(Piece::White), BlackThreatMap(Piece::Black)
 	{
 		memset(Squares, 0, 64);
 
@@ -72,6 +72,8 @@ namespace Chess
 			size_t endOfFM = fen.find(' ', endOfHM + 1);
 			int8 FullMoveCounter = std::atoi(fen.substr(endOfHM + 1, endOfFM - (endOfHM + 1)).c_str());
 		}
+
+		UpdateThreatMaps();
 	}
 
 	void State::Update(const Move& move)
@@ -127,6 +129,7 @@ namespace Chess
 
 	std::vector<int8> State::FindPiece(int8 piece) const
 	{
+		//TODO: Cache locations of pieces so we can just look them up
 		std::vector<int8> pieceLocations;
 		for (int idx = 0; idx < 64; idx++)
 		{

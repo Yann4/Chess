@@ -92,7 +92,7 @@ namespace Chess
 			Colour(colour),
 			EnPassentTarget(enPassent),
 			PreventsCastling(preventCastle), Castle(castle),
-			Promote(promotion), AlgebraicName(GenerateAlgebraicName(board))
+			Promote(promotion), AlgebraicName(/*GenerateAlgebraicName(board)*/)
 		{ }
 
 		std::string GenerateAlgebraicName(const State& board) const;

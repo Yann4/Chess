@@ -87,6 +87,18 @@ namespace Chess
 				continue;
 			}
 
+			//Reject jumps that wrap around the edge of the board
+			int8 y = startSquare / 8;
+			int8 x = startSquare - y * 8;
+
+			int8 targetY = targetSquare / 8;
+			int8 targetX = targetSquare - targetY * 8;
+			//If you've moved further than 2 on x/y (when coords are 0-8) you've wrapped the board
+			if (std::max(std::abs(x - targetX), std::abs(y - targetY)) != 2)
+			{
+				continue;
+			}
+
 			if (Utils::IsColour(state.Squares[targetSquare], friendlyColour))
 			{
 				continue;

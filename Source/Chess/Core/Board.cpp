@@ -17,7 +17,21 @@ namespace Chess
 	{
 		if (IsValidMove(move))
 		{
+			StateHistory.push(BoardState);
+
 			BoardState.Update(move);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Board::UnmakeMove()
+	{
+		if (StateHistory.size() > 0)
+		{
+			BoardState = StateHistory.top();
+			StateHistory.pop();
 			return true;
 		}
 
@@ -26,28 +40,7 @@ namespace Chess
 
 	bool Board::IsValidMove(Move& move) const
 	{
-		//TODO: This is really slow. Fix
-
 		std::vector<Move> validMoves = MoveGeneration::GenerateMoves(BoardState, BoardState.ColourToMove);
-
-		int8 king = Constants::DEFAULT;
-		for (int8 square = 0; square < 64; square++)
-		{
-			if (Utils::IsType(BoardState.Squares[square], Piece::King) && Utils::IsColour(BoardState.Squares[square], BoardState.ColourToMove))
-			{
-				king = square;
-				break;
-			}
-		}
-
-		assert(king != Constants::DEFAULT);
-		for (int idx = validMoves.size() - 1; idx >= 0; idx--)
-		{
-			if (Board::DoesMoveExposeKing(BoardState, validMoves[idx], king))
-			{
-				validMoves.erase(validMoves.begin() + idx);
-			}
-		}
 
 		auto validatedMove = std::find(validMoves.begin(), validMoves.end(), move);
 		bool moveIsValid = validatedMove != validMoves.end();

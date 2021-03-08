@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include <stack>
 
 #include "Constants.h"
 #include "Move.h"
@@ -21,6 +22,7 @@ namespace Chess
 
 		bool MakeMove(Move& move);
 		bool IsValidMove(Move& move) const;
+		bool UnmakeMove();
 
 		inline int8 GetEnPassentTarget() const { return BoardState.EnPassentTarget; }
 		inline int8 GetColourToMove() const { return BoardState.ColourToMove; }
@@ -30,5 +32,6 @@ namespace Chess
 
 	public:
 		State BoardState;
+		std::stack<State> StateHistory;
 	};
 }

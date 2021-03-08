@@ -11,9 +11,7 @@ namespace Chess
 
 	Board::Board():
 		BoardState(StandardStartFEN)
-	{
-		PrecomputeMoveData(); //TODO: Make this happen at compile time
-	}
+	{}
 
 	bool Board::MakeMove(Move& move)
 	{

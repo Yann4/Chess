@@ -43,6 +43,36 @@ namespace Chess
 
 		namespace
 		{
+			struct ToEdge
+			{
+				constexpr ToEdge() : arr()
+				{
+					for (int8 file = 0; file < 8; file++)
+					{
+						for (int8 rank = 0; rank < 8; rank++)
+						{
+							int8 numNorth = 7 - rank;
+							int8 numSouth = rank;
+							int8 numWest = file;
+							int8 numEast = 7 - file;
+
+							int8 squareIdx = rank * 8 + file;
+
+							arr[squareIdx][0] = numNorth;
+							arr[squareIdx][1] = numSouth;
+							arr[squareIdx][2] = numWest;
+							arr[squareIdx][3] = numEast;
+							arr[squareIdx][4] = std::min(numNorth, numWest);
+							arr[squareIdx][5] = std::min(numSouth, numEast);
+							arr[squareIdx][6] = std::min(numNorth, numEast);
+							arr[squareIdx][7] = std::min(numSouth, numWest);
+						}
+					}
+				}
+
+				int8 arr[64][8];
+			};
+
 			struct Initialiser
 			{
 				static std::map<char, int8> ConstructMap()
@@ -62,31 +92,6 @@ namespace Chess
 		} //Anonymous namespace to initialise the PieceTypeFromSymbol map
 
 		const std::map<char, int8> PieceTypeFromSymbol = Initialiser::ConstructMap();
-
-		static int8 NumSquaresToEdge[64][8];
-		static void PrecomputeMoveData()
-		{
-			for (int8 file = 0; file < 8; file++)
-			{
-				for (int8 rank = 0; rank < 8; rank++)
-				{
-					int8 numNorth = 7 - rank;
-					int8 numSouth = rank;
-					int8 numWest = file;
-					int8 numEast = 7 - file;
-
-					int8 squareIdx = rank * 8 + file;
-
-					NumSquaresToEdge[squareIdx][0] = numNorth;
-					NumSquaresToEdge[squareIdx][1] = numSouth;
-					NumSquaresToEdge[squareIdx][2] = numWest;
-					NumSquaresToEdge[squareIdx][3] = numEast;
-					NumSquaresToEdge[squareIdx][4] = std::min(numNorth, numWest);
-					NumSquaresToEdge[squareIdx][5] = std::min(numSouth, numEast);
-					NumSquaresToEdge[squareIdx][6] = std::min(numNorth, numEast);
-					NumSquaresToEdge[squareIdx][7] = std::min(numSouth, numWest);
-				}
-			}
-		}
+		static int8 NumSquaresToEdge[64][8] = ToEdge().arr;
 	}
 }

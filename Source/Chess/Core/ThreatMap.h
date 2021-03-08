@@ -7,6 +7,10 @@ namespace Chess
 	struct ThreatMap
 	{
 	public:
+		ThreatMap(int8 colour) :
+			Colour(colour), Map(0)
+		{}
+
 		ThreatMap(const State& board, int8 colour) : 
 			Colour(colour), Map(0) 
 		{ 
@@ -20,7 +24,7 @@ namespace Chess
 		inline void SetThreatened(int8 square) { Map |= 1ULL << square; }
 
 	private:
-		const int8 Colour;
+		int8 Colour;
 		int64 Map;
 	};
 }

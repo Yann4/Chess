@@ -92,7 +92,7 @@ namespace Chess
 			Colour(colour),
 			EnPassentTarget(enPassent),
 			PreventsCastling(preventCastle), Castle(castle),
-			Promote(promotion), AlgebraicName(/*GenerateAlgebraicName(board)*/)
+			Promote(promotion), AlgebraicName(/*GenerateAlgebraicName(board)*/) //TODO: Re-add move naming in a way that isn't recursive
 		{ }
 
 		std::string GenerateAlgebraicName(const State& board) const;

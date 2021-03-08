@@ -145,4 +145,17 @@ namespace Chess
 
 		return pieceLocations;
 	}
+
+	bool State::DoesMoveExposeKing(const Move& move) const
+	{
+		State afterMove(*this);
+		int8 colour = ColourToMove;
+		int8 king = FindPiece(Piece::King | move.Colour)[0];
+
+		afterMove.Update(move);
+		afterMove.UpdateThreatMaps();
+
+		int8 kingSquare = Utils::IsType(Squares[move.StartSquare], Piece::King) ? move.TargetSquare : king;
+		return afterMove.IsSquareThreatened(kingSquare, colour);
+	}
 }

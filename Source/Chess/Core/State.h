@@ -35,7 +35,9 @@ namespace Chess
 
 		bool IsSquareThreatened(int8 square, int8 friendlyColour) const;
 		bool IsKingThreatened(int8 colour) const;
+		bool DoesMoveExposeKing(const Move& move) const;
 
 		std::vector<int8> FindPiece(int8 piece) const;
+
 	};
 }

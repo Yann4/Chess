@@ -2,50 +2,33 @@
 
 #include "Utils.h"
 
+#include <assert.h>
+
 namespace Chess
 {
 	using namespace Constants;
 
 	std::vector<Move> MoveGeneration::GenerateMoves(const State& board, int8 colour, bool calculateThreat /*= false*/)
 	{
-		std::vector<Move> moves;
-		for (int8 startSquare = 0; startSquare < 64; startSquare++)
+		//TODO: This is really slow. Fix
+		std::vector<Move> moves = GenerateMoves_Impl(board, colour, calculateThreat);
+		if (!calculateThreat)
 		{
-			int8 piece = board.Squares[startSquare];
-
-			if (Utils::IsColour(piece, colour))
-			{
-				if (Utils::IsSlidingPiece(piece))
-				{
-					GenerateSlidingMoves(board, startSquare, moves);
-				}
-
-				if (Utils::IsType(piece, Piece::Knight))
-				{
-					GenerateKnightMoves(board, startSquare, moves);
-				}
-
-				if (Utils::IsType(piece, Piece::Pawn))
-				{
-					if (calculateThreat)
-					{
-						GeneratePawnAttacks(board, startSquare, moves, calculateThreat);
-					}
-					else
-					{
-						GeneratePawnMoves(board, startSquare, moves);
-						GeneratePawnAttacks(board, startSquare, moves);
-					}
-				}
-
-				if (Utils::IsType(piece, Piece::King))
-				{
-					GenerateKingMoves(board, startSquare, moves, calculateThreat);
-				}
-			}
+			PruneIllegalMoves_Impl(board, colour, moves);
 		}
 
 		return moves;
+	}
+
+	void MoveGeneration::PruneIllegalMoves_Impl(const State& board, int8 colour, std::vector<Move>& moves)
+	{
+		for (int idx = moves.size() - 1; idx >= 0; idx--)
+		{
+			if (board.DoesMoveExposeKing(moves[idx]))
+			{
+				moves.erase(moves.begin() + idx);
+			}
+		}
 	}
 
 	void MoveGeneration::GenerateSlidingMoves(const State& state, int8 startSquare, std::vector<Move>& moves)
@@ -268,5 +251,47 @@ namespace Chess
 				}
 			}
 		}
+	}
+
+	std::vector<Move> MoveGeneration::GenerateMoves_Impl(const State& board, int8 colour, bool calculateThreat /*= false*/)
+	{
+		std::vector<Move> moves;
+		for (int8 startSquare = 0; startSquare < 64; startSquare++)
+		{
+			int8 piece = board.Squares[startSquare];
+
+			if (Utils::IsColour(piece, colour))
+			{
+				if (Utils::IsSlidingPiece(piece))
+				{
+					GenerateSlidingMoves(board, startSquare, moves);
+				}
+
+				if (Utils::IsType(piece, Piece::Knight))
+				{
+					GenerateKnightMoves(board, startSquare, moves);
+				}
+
+				if (Utils::IsType(piece, Piece::Pawn))
+				{
+					if (calculateThreat)
+					{
+						GeneratePawnAttacks(board, startSquare, moves, calculateThreat);
+					}
+					else
+					{
+						GeneratePawnMoves(board, startSquare, moves);
+						GeneratePawnAttacks(board, startSquare, moves);
+					}
+				}
+
+				if (Utils::IsType(piece, Piece::King))
+				{
+					GenerateKingMoves(board, startSquare, moves, calculateThreat);
+				}
+			}
+		}
+
+		return moves;
 	}
 }

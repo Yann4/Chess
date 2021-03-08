@@ -14,6 +14,10 @@ namespace Chess
 
 		std::vector<Move> GenerateMoves(const State& board, int8 colour, bool calculateThreat = false);
 
+		//Includes illegal moves that would put the king in check
+		std::vector<Move> GenerateMoves_Impl(const State& board, int8 colour, bool calculateThreat = false);
+		void PruneIllegalMoves_Impl(const State& board, int8 colour, std::vector<Move>& moves);
+
 		void GenerateSlidingMoves(const State& state, int8 startSquare, std::vector<Move>& moves);
 		void GenerateKnightMoves(const State& state, int8 startSquare, std::vector<Move>& moves);
 		void GeneratePawnMoves(const State& state, int8 startSquare, std::vector<Move>& moves);

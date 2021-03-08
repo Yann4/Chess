@@ -65,7 +65,7 @@ namespace Chess
 			}
 
 			//Loop over all of those moves, if any have the same target, voila, ambiguity to be resolved
-			for (Move& alternateMove: validMoves)
+			for (Move& alternateMove : validMoves)
 			{
 				if (alternateMove.TargetSquare == TargetSquare)
 				{
